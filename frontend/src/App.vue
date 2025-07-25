@@ -10,6 +10,11 @@
         style="padding:0.5rem; width: 250px;"
       />
       <input
+        v-model="newDescription"
+        placeholder="Description (optional)"
+        style="padding:0.5rem; margin-left:0.5rem; width: 200px;"
+      />
+      <input
         v-model="newDue"
         type="date"
         style="padding:0.5rem; margin-left:0.5rem;"
@@ -22,7 +27,9 @@
         <label>
           <input type="checkbox" v-model="t.done" @change="updateTodo(t)" />
           <span :style="{ textDecoration: t.done ? 'line-through' : 'none' }">
-            {{ t.text }} (due: {{ t.due_date }})
+            {{ t.text }}
+            <span v-if="t.description" style="color: #666; font-style: italic;"> - {{ t.description }}</span>
+            (due: {{ t.due_date }})
           </span>
         </label>
         <button @click="deleteTodo(t.id)" style="margin-left:0.5rem;">×</button>
@@ -37,6 +44,7 @@ import { ref, onMounted } from 'vue';
 const API_BASE = "/api";
 const todos = ref([]);
 const newText = ref('');
+const newDescription = ref('');
 const newDue = ref('');
 
 const fetchTodos = async () => {
@@ -48,10 +56,11 @@ const addTodo = async () => {
   const res = await fetch(`${API_BASE}/todos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: newText.value, due_date: newDue.value }),
+    body: JSON.stringify({ text: newText.value, description: newDescription.value, due_date: newDue.value }),
   });
   if (res.ok) {
     newText.value = '';
+    newDescription.value = '';
     newDue.value = '';
     await fetchTodos();
   }
