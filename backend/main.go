@@ -7,13 +7,15 @@ import (
     "strconv"
     "strings"
     "sync"
+    "time"
 )
 
 // Todo represents a single todo item
 type Todo struct {
-    ID   int    `json:"id"`
-    Text string `json:"text"`
-    Done bool   `json:"done"`
+    ID       int    `json:"id"`
+    Text     string `json:"text"`
+    Done     bool   `json:"done"`
+    DueDate  string `json:"due_date"`
 }
 
 var (
@@ -64,7 +66,8 @@ func handleTodos(w http.ResponseWriter, r *http.Request) {
 
     case http.MethodPost:
         var incoming struct {
-            Text string `json:"text"`
+            Text    string `json:"text"`
+            DueDate string `json:"due_date"`
         }
         if err := json.NewDecoder(r.Body).Decode(&incoming); err != nil {
             http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -74,10 +77,14 @@ func handleTodos(w http.ResponseWriter, r *http.Request) {
             http.Error(w, "text required", http.StatusBadRequest)
             return
         }
+        dueDate := strings.TrimSpace(incoming.DueDate)
+        if dueDate == "" {
+            dueDate = time.Now().AddDate(0, 0, 7).Format("2006-01-02")
+        }
         mu.Lock()
         id := nextID
         nextID++
-        t := Todo{ID: id, Text: incoming.Text, Done: false}
+        t := Todo{ID: id, Text: incoming.Text, Done: false, DueDate: dueDate}
         todos[id] = t
         mu.Unlock()
 
@@ -116,11 +123,15 @@ func handleTodoByID(w http.ResponseWriter, r *http.Request) {
 
     switch r.Method {
     case http.MethodPut:
+        oldDue := todo.DueDate
         if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
             http.Error(w, "invalid JSON", http.StatusBadRequest)
             return
         }
         todo.ID = id // ensure ID remains consistent
+        if strings.TrimSpace(todo.DueDate) == "" {
+            todo.DueDate = oldDue
+        }
         mu.Lock()
         todos[id] = todo
         mu.Unlock()
