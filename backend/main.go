@@ -8,6 +8,7 @@ import (
     "strings"
     "sync"
     "time"
+    "os"
 )
 
 // Todo represents a single todo item
@@ -39,6 +40,7 @@ func withCORS(h http.HandlerFunc) http.HandlerFunc {
 }
 
 func main() {
+    log.SetOutput(os.Stdout)
     http.HandleFunc("/todos", withCORS(handleTodos))
     http.HandleFunc("/todos/", withCORS(handleTodoByID)) // matches /todos/{id}
 
@@ -51,6 +53,7 @@ func main() {
 // handleTodos handles collection endpoints: GET list, POST create
 func handleTodos(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
+    log.Printf("%s %s", r.Method, r.URL.Path)
 
     switch r.Method {
     case http.MethodGet:
@@ -86,6 +89,7 @@ func handleTodos(w http.ResponseWriter, r *http.Request) {
         nextID++
         t := Todo{ID: id, Text: incoming.Text, Done: false, DueDate: dueDate}
         todos[id] = t
+        log.Printf("Created todo %d (due %s)", id, dueDate)
         mu.Unlock()
 
         w.WriteHeader(http.StatusCreated)
@@ -100,6 +104,7 @@ func handleTodos(w http.ResponseWriter, r *http.Request) {
 // handleTodoByID handles single resource endpoints: PUT update, DELETE delete
 func handleTodoByID(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
+    log.Printf("%s %s", r.Method, r.URL.Path)
 
     // Path expected: /todos/{id}
     parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/todos/"), "/")
@@ -134,12 +139,14 @@ func handleTodoByID(w http.ResponseWriter, r *http.Request) {
         }
         mu.Lock()
         todos[id] = todo
+        log.Printf("Updated todo %d", id)
         mu.Unlock()
         _ = json.NewEncoder(w).Encode(todo)
 
     case http.MethodDelete:
         mu.Lock()
         delete(todos, id)
+        log.Printf("Deleted todo %d", id)
         mu.Unlock()
         w.WriteHeader(http.StatusNoContent)
 
