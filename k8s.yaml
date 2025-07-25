@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: todo-backend:latest
+          image: todo-backend
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -103,7 +103,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: todo-frontend:latest
+          image: todo-frontend
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
