@@ -13,10 +13,11 @@ import (
 
 // Todo represents a single todo item
 type Todo struct {
-    ID       int    `json:"id"`
-    Text     string `json:"text"`
-    Done     bool   `json:"done"`
-    DueDate  string `json:"due_date"`
+    ID          int    `json:"id"`
+    Text        string `json:"text"`
+    Description string `json:"description"`
+    Done        bool   `json:"done"`
+    DueDate     string `json:"due_date"`
 }
 
 var (
@@ -69,8 +70,9 @@ func handleTodos(w http.ResponseWriter, r *http.Request) {
 
     case http.MethodPost:
         var incoming struct {
-            Text    string `json:"text"`
-            DueDate string `json:"due_date"`
+            Text        string `json:"text"`
+            Description string `json:"description"`
+            DueDate     string `json:"due_date"`
         }
         if err := json.NewDecoder(r.Body).Decode(&incoming); err != nil {
             http.Error(w, "invalid JSON", http.StatusBadRequest)
@@ -87,9 +89,9 @@ func handleTodos(w http.ResponseWriter, r *http.Request) {
         mu.Lock()
         id := nextID
         nextID++
-        t := Todo{ID: id, Text: incoming.Text, Done: false, DueDate: dueDate}
+        t := Todo{ID: id, Text: incoming.Text, Description: incoming.Description, Done: false, DueDate: dueDate}
         todos[id] = t
-        log.Printf("Created todo %d (due %s)", id, dueDate)
+        log.Printf("Created todo: %+v", t)
         mu.Unlock()
 
         w.WriteHeader(http.StatusCreated)
