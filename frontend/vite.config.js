@@ -8,8 +8,8 @@ export default defineConfig(({ mode }) => {
     plugins: [vue()],
     server: {
       proxy: {
-        '/todos': {
-          target: env.VITE_API_BASE_URL,
+        '/api': {
+          target: env.VITE_API_BASE_URL || 'http://localhost:8080',
           changeOrigin: true,
           secure: false,
         },
