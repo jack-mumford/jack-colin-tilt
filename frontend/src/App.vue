@@ -34,17 +34,18 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const todos = ref([]);
 const newText = ref('');
 const newDue = ref('');
 
 const fetchTodos = async () => {
-  const res = await fetch('http://localhost:8080/todos');
+  const res = await fetch(`${API_BASE}/todos`);
   todos.value = await res.json();
 };
 
 const addTodo = async () => {
-  const res = await fetch('http://localhost:8080/todos', {
+  const res = await fetch(`${API_BASE}/todos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text: newText.value, due_date: newDue.value }),
@@ -57,7 +58,7 @@ const addTodo = async () => {
 };
 
 const updateTodo = async (todo) => {
-  await fetch(`http://localhost:8080/todos/${todo.id}`, {
+  await fetch(`${API_BASE}/todos/${todo.id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(todo),
@@ -65,7 +66,7 @@ const updateTodo = async (todo) => {
 };
 
 const deleteTodo = async (id) => {
-  await fetch(`http://localhost:8080/todos/${id}`, { method: 'DELETE' });
+  await fetch(`${API_BASE}/todos/${id}`, { method: 'DELETE' });
   await fetchTodos();
 };
 

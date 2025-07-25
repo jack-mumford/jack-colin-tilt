@@ -19,6 +19,7 @@ backend/coverage.out
 # ---- Common ----
 .DS_Store
 .env
+frontend/.env*
 *.log
 .idea/
 .vscode/

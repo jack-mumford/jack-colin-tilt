@@ -28,6 +28,23 @@ npm run dev -- --host
 
 Now open `http://localhost:5173` and start adding todos. The SPA talks to the Go API at `http://localhost:8080`.
 
+## Environment configuration
+
+Vite uses environment files to embed the backend URL at build time. Two files live in `frontend/` (and are **git-ignored**):
+
+| File | Used by | Example value |
+|------|---------|---------------|
+| `.env.development` | `npm run dev` | `VITE_API_BASE_URL=http://localhost:8080` |
+| `.env.production`  | `npm run build` / Docker / k8s | `VITE_API_BASE_URL=http://todo-backend:8080` |
+
+Only variables prefixed with `VITE_` are exposed to the client bundle. Feel free to create additional files such as `.env.staging` and pass them inline:
+
+```bash
+VITE_API_BASE_URL=https://staging.example.com npm run build
+```
+
+---
+
 ## Project structure
 
 ```
