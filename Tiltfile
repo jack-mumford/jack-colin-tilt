@@ -32,22 +32,4 @@ docker_build(
 k8s_resource('todo-backend', port_forwards='8080:8080')
 
 # Set up port forwarding for the frontend
-k8s_resource('todo-frontend', port_forwards='8081:80')
-
-# Optional: Set resource dependencies
-# This ensures backend starts before frontend if needed
-# k8s_resource('todo-frontend', resource_deps=['todo-backend'])
-
-# Print helpful information
-print("""
-🚀 TodoMVC Application Starting!
-
-Backend API will be available at: http://localhost:8080
-Frontend will be available at: http://localhost:8081
-
-Hot reloading is enabled:
-- Backend: Changes to .go files will trigger rebuild
-- Frontend: Changes to src/ files will trigger rebuild
-
-Use 'tilt up' to start and 'tilt down' to stop.
-""")
+k8s_resource('todo-frontend', resource_deps=['todo-backend'], port_forwards='8081:80')
