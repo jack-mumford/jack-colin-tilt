@@ -6,11 +6,11 @@ k8s_yaml('k8s.yaml')
 
 # Backend (Go API)
 # Build the backend Docker image and import into k3d
-custom_build(
-    'todo-backend',
-    'docker build -t $EXPECTED_REF ./backend && k3d image import $EXPECTED_REF -c dev-cluster',
-    deps=['./backend'],
-    skips_local_docker=True,
+docker_build(
+    'dev-registry:50890/todo-backend',
+    context='./backend',
+    dockerfile='./backend/Dockerfile',
+    # only='./backend/main.go',
     # Watch for changes in Go files and rebuild
     live_update=[
         sync('./backend', '/src'),
@@ -20,21 +20,12 @@ custom_build(
 
 # Frontend (Vue + Nginx)
 # Build the frontend Docker image and import into k3d
-custom_build(
-    'todo-frontend',
-    'docker build -t $EXPECTED_REF ./frontend && k3d image import $EXPECTED_REF -c dev-cluster',
-    deps=['./frontend'],
-    skips_local_docker=True,
+docker_build(
+    'dev-registry:50890/todo-frontend',
+    context='./frontend',
+    dockerfile='./frontend/Dockerfile',
+    # only='./frontend/src',
     # Watch for changes in frontend files and rebuild
-    live_update=[
-        # All sync steps must come first
-        sync('./frontend/src', '/app/src'),
-        sync('./frontend/package.json', '/app/package.json'),
-        sync('./frontend/vite.config.js', '/app/vite.config.js'),
-        # All run steps must come after sync steps
-        run('npm run build', trigger=['src/**/*', 'package.json', 'vite.config.js']),
-        run('cp -r /app/dist/* /usr/share/nginx/html/', trigger=['src/**/*', 'package.json', 'vite.config.js'])
-    ]
 )
 
 # Set up port forwarding for the backend API
