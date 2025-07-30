@@ -17,6 +17,7 @@ docker_build_with_restart(
     'todo-backend',
     context='./backend',
     dockerfile='./backend/Dockerfile',
+    target='dev',
     entrypoint='/app/bin/backend',
     only=[
         './bin'
