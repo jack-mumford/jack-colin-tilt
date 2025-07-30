@@ -14,7 +14,7 @@ local_resource(
 )
 
 docker_build_with_restart(
-    'dev-registry:50890/todo-backend',
+    'todo-backend',
     context='./backend',
     dockerfile='./backend/Dockerfile',
     entrypoint='/app/bin/backend',
@@ -34,7 +34,7 @@ local_resource(
     ignore=['./frontend/dist', './frontend/node_modules']
 )
 docker_build(
-    'dev-registry:50890/todo-frontend',
+    'todo-frontend',
     context='./frontend',
     dockerfile='./frontend/Dockerfile',
     only=[
