@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <main class="main-content">
-      <h1 class="app-title">TodoMVC</h1>
+      <h1 class="app-title">TodoMVC + Tilt (with Live Update)</h1>
 
       <form @submit.prevent="addTodo" class="todo-form">
         <div class="input-group">

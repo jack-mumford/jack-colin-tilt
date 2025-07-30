@@ -1,31 +1,49 @@
 # Tiltfile for TodoMVC application
 # This file configures Tilt to build, deploy, and hot-reload both frontend and backend
+load('ext://restart_process', 'docker_build_with_restart')
 
 # Load Kubernetes manifests
 k8s_yaml('k8s.yaml')
 
 # Backend (Go API)
-# Build the backend Docker image and import into k3d
-docker_build(
+local_resource(
+    'backend-compile',
+    'cd backend && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/backend',
+    deps=['./backend'],
+    ignore=['./backend/bin']
+)
+
+docker_build_with_restart(
     'dev-registry:50890/todo-backend',
     context='./backend',
     dockerfile='./backend/Dockerfile',
-    # only='./backend/main.go',
-    # Watch for changes in Go files and rebuild
+    entrypoint='/app/bin/backend',
+    only=[
+        './bin'
+    ],
     live_update=[
-        sync('./backend', '/src'),
-        run('go build -o /bin/backend .', trigger=['**/*.go'])
+        sync('./backend/bin', '/app/bin'),
     ]
 )
 
 # Frontend (Vue + Nginx)
-# Build the frontend Docker image and import into k3d
+local_resource(
+    'frontend-compile',
+    'cd frontend && npm ci && npm run build',
+    deps=['./frontend'],
+    ignore=['./frontend/dist', './frontend/node_modules']
+)
 docker_build(
     'dev-registry:50890/todo-frontend',
     context='./frontend',
     dockerfile='./frontend/Dockerfile',
-    # only='./frontend/src',
-    # Watch for changes in frontend files and rebuild
+    only=[
+        './dist',
+        './nginx.conf'
+    ],
+    live_update=[
+        sync('./frontend/dist', '/usr/share/nginx/html')
+    ]
 )
 
 # Set up port forwarding for the backend API

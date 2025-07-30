@@ -1,159 +1,167 @@
 package main
 
 import (
-    "encoding/json"
-    "log"
-    "net/http"
-    "strconv"
-    "strings"
-    "sync"
-    "time"
-    "os"
+	"encoding/json"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 // Todo represents a single todo item
 type Todo struct {
-    ID          int    `json:"id"`
-    Text        string `json:"text"`
-    Description string `json:"description"`
-    Done        bool   `json:"done"`
-    DueDate     string `json:"due_date"`
+	ID          int    `json:"id"`
+	Text        string `json:"text"`
+	Description string `json:"description"`
+	Done        bool   `json:"done"`
+	DueDate     string `json:"due_date"`
 }
 
 var (
-    todos  = make(map[int]Todo)
-    nextID = 1
-    mu     sync.Mutex
+	todos  = make(map[int]Todo)
+	nextID = 1
+	mu     sync.Mutex
 )
 
 // withCORS wraps handlers to add permissive CORS headers for local dev.
 func withCORS(h http.HandlerFunc) http.HandlerFunc {
-    return func(w http.ResponseWriter, r *http.Request) {
-        w.Header().Set("Access-Control-Allow-Origin", "*")
-        w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-        w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-        if r.Method == http.MethodOptions {
-            w.WriteHeader(http.StatusNoContent)
-            return
-        }
-        h(w, r)
-    }
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		h(w, r)
+	}
+}
+
+func hello(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+
+	io.WriteString(w, "Hello, World!")
 }
 
 func main() {
-    log.SetOutput(os.Stdout)
-    http.HandleFunc("/todos", withCORS(handleTodos))
-    http.HandleFunc("/todos/", withCORS(handleTodoByID)) // matches /todos/{id}
+	log.SetOutput(os.Stdout)
+	http.HandleFunc("/todos", withCORS(handleTodos))
+	http.HandleFunc("/todos/", withCORS(handleTodoByID)) // matches /todos/{id}
+	http.HandleFunc("/hello", withCORS(hello))
 
-    log.Println("Starting backend on :8080 …")
-    if err := http.ListenAndServe(":8080", nil); err != nil {
-        log.Fatalf("server error: %v", err)
-    }
+	log.Println("Starting backend on :8080 …")
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatalf("server error: %v", err)
+	}
 }
 
 // handleTodos handles collection endpoints: GET list, POST create
 func handleTodos(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    log.Printf("%s %s", r.Method, r.URL.Path)
+	w.Header().Set("Content-Type", "application/json")
+	log.Printf("%s %s", r.Method, r.URL.Path)
 
-    switch r.Method {
-    case http.MethodGet:
-        list := make([]Todo, 0, len(todos))
-        mu.Lock()
-        for _, t := range todos {
-            list = append(list, t)
-        }
-        mu.Unlock()
-        if err := json.NewEncoder(w).Encode(list); err != nil {
-            http.Error(w, err.Error(), http.StatusInternalServerError)
-        }
+	switch r.Method {
+	case http.MethodGet:
+		list := make([]Todo, 0, len(todos))
+		mu.Lock()
+		for _, t := range todos {
+			list = append(list, t)
+		}
+		mu.Unlock()
+		if err := json.NewEncoder(w).Encode(list); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 
-    case http.MethodPost:
-        var incoming struct {
-            Text        string `json:"text"`
-            Description string `json:"description"`
-            DueDate     string `json:"due_date"`
-        }
-        if err := json.NewDecoder(r.Body).Decode(&incoming); err != nil {
-            http.Error(w, "invalid JSON", http.StatusBadRequest)
-            return
-        }
-        if strings.TrimSpace(incoming.Text) == "" {
-            http.Error(w, "text required", http.StatusBadRequest)
-            return
-        }
-        dueDate := strings.TrimSpace(incoming.DueDate)
-        if dueDate == "" {
-            dueDate = time.Now().AddDate(0, 0, 7).Format("2006-01-02")
-        }
-        mu.Lock()
-        id := nextID
-        nextID++
-        t := Todo{ID: id, Text: incoming.Text, Description: incoming.Description, Done: false, DueDate: dueDate}
-        todos[id] = t
-        log.Printf("Created todo: %+v", t)
-        mu.Unlock()
+	case http.MethodPost:
+		var incoming struct {
+			Text        string `json:"text"`
+			Description string `json:"description"`
+			DueDate     string `json:"due_date"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&incoming); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
+		if strings.TrimSpace(incoming.Text) == "" {
+			http.Error(w, "text required", http.StatusBadRequest)
+			return
+		}
+		dueDate := strings.TrimSpace(incoming.DueDate)
+		if dueDate == "" {
+			dueDate = time.Now().AddDate(0, 0, 7).Format("2006-01-02")
+		}
+		mu.Lock()
+		id := nextID
+		nextID++
+		t := Todo{ID: id, Text: incoming.Text, Description: incoming.Description, Done: false, DueDate: dueDate}
+		todos[id] = t
+		log.Printf("Created todo: %+v", t)
+		mu.Unlock()
 
-        w.WriteHeader(http.StatusCreated)
-        _ = json.NewEncoder(w).Encode(t)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(t)
 
-    default:
-        w.Header().Set("Allow", "GET, POST")
-        http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-    }
+	default:
+		w.Header().Set("Allow", "GET, POST")
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 // handleTodoByID handles single resource endpoints: PUT update, DELETE delete
 func handleTodoByID(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "application/json")
-    log.Printf("%s %s", r.Method, r.URL.Path)
+	w.Header().Set("Content-Type", "application/json")
+	log.Printf("%s %s", r.Method, r.URL.Path)
 
-    // Path expected: /todos/{id}
-    parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/todos/"), "/")
-    if len(parts) == 0 || parts[0] == "" {
-        http.Error(w, "id required", http.StatusBadRequest)
-        return
-    }
-    id, err := strconv.Atoi(parts[0])
-    if err != nil {
-        http.Error(w, "invalid id", http.StatusBadRequest)
-        return
-    }
+	// Path expected: /todos/{id}
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/todos/"), "/")
+	if len(parts) == 0 || parts[0] == "" {
+		http.Error(w, "id required", http.StatusBadRequest)
+		return
+	}
+	id, err := strconv.Atoi(parts[0])
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
 
-    mu.Lock()
-    todo, ok := todos[id]
-    mu.Unlock()
-    if !ok {
-        http.Error(w, "not found", http.StatusNotFound)
-        return
-    }
+	mu.Lock()
+	todo, ok := todos[id]
+	mu.Unlock()
+	if !ok {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
-    switch r.Method {
-    case http.MethodPut:
-        oldDue := todo.DueDate
-        if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
-            http.Error(w, "invalid JSON", http.StatusBadRequest)
-            return
-        }
-        todo.ID = id // ensure ID remains consistent
-        if strings.TrimSpace(todo.DueDate) == "" {
-            todo.DueDate = oldDue
-        }
-        mu.Lock()
-        todos[id] = todo
-        log.Printf("Updated todo %d", id)
-        mu.Unlock()
-        _ = json.NewEncoder(w).Encode(todo)
+	switch r.Method {
+	case http.MethodPut:
+		oldDue := todo.DueDate
+		if err := json.NewDecoder(r.Body).Decode(&todo); err != nil {
+			http.Error(w, "invalid JSON", http.StatusBadRequest)
+			return
+		}
+		todo.ID = id // ensure ID remains consistent
+		if strings.TrimSpace(todo.DueDate) == "" {
+			todo.DueDate = oldDue
+		}
+		mu.Lock()
+		todos[id] = todo
+		log.Printf("Updated todo %d", id)
+		mu.Unlock()
+		_ = json.NewEncoder(w).Encode(todo)
 
-    case http.MethodDelete:
-        mu.Lock()
-        delete(todos, id)
-        log.Printf("Deleted todo %d", id)
-        mu.Unlock()
-        w.WriteHeader(http.StatusNoContent)
+	case http.MethodDelete:
+		mu.Lock()
+		delete(todos, id)
+		log.Printf("Deleted todo %d", id)
+		mu.Unlock()
+		w.WriteHeader(http.StatusNoContent)
 
-    default:
-        w.Header().Set("Allow", "PUT, DELETE")
-        http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-    }
+	default:
+		w.Header().Set("Allow", "PUT, DELETE")
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
