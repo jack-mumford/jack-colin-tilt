@@ -31,8 +31,7 @@ docker_build_with_restart(
 local_resource(
     'frontend-compile',
     'cd frontend && npm ci && npm run build',
-    deps=['./frontend'],
-    ignore=['./frontend/dist', './frontend/node_modules']
+    deps=['./frontend/src', './frontend/index.html'],
 )
 docker_build(
     'todo-frontend',
